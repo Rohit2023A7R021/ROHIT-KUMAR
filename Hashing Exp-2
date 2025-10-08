@@ -1,0 +1,19 @@
+import hashlib
+
+def generate_sha256_hash(data: str) -> str:
+    hash_object = hashlib.sha256(data.encode())
+    return hash_object.hexdigest()
+def verify_data_integrity(original_data: str, original_hash: str) -> bool:
+    new_hash = generate_sha256_hash(original_data)
+    return new_hash == original_hash
+
+data = "This is a secure message."
+hash_value = generate_sha256_hash(data)
+print("Generated Hash:", hash_value)
+is_valid = verify_data_integrity(data, hash_value)
+print("Is data valid?", is_valid)
+tampered_data = "This is a tampered message."
+is_valid_tampered = verify_data_integrity(tampered_data, hash_value)
+print("Is tampered data valid?", is_valid_tampered)
+
+
