@@ -1,0 +1,85 @@
+
+import hashlib
+import secrets
+import time
+
+USER_DB = {
+    "alice": b"alice_secret_key_123",
+    "bob": b"bob_secret_key_456"
+}
+
+class Server:
+    def __init__(self):
+        self.active_nonces = {}
+        self.used_nonces = set()
+        self.nonce_ttl = 10
+
+    def issue_challenge(self, username):
+      
+        nonce = secrets.token_hex(16)
+        self.active_nonces[nonce] = (username, time.time())
+        print(f"[Server] Challenge for {username}: {nonce}")
+        return nonce
+
+    def verify_response(self, username, nonce, client_mac):
+        
+        now = time.time()
+        # Check nonce existence
+        if nonce not in self.active_nonces:
+            print("[Server]Invalid or reused nonce (possible replay).")
+            return False
+
+        issued_user, issued_time = self.active_nonces[nonce]
+        
+        if issued_user != username:
+            print("[Server]Nonce not issued for this user.")
+            return False
+        if now - issued_time > self.nonce_ttl:
+            print("[Server]Nonce expired.")
+            del self.active_nonces[nonce]
+            return False
+        if nonce in self.used_nonces:
+            print("[Server]Replay detected! Nonce already used.")
+            return False
+        secret = USER_DB.get(username)
+        expected_mac = hmac.new(secret, (nonce + username).encode(), hashlib.sha256).hexdigest()
+        print("[Server]Authentication successful.")
+        self.used_nonces.add(nonce)
+        del self.active_nonces[nonce]
+        return True
+
+
+class Client:
+    def __init__(self, username):
+        self.username = username
+        self.secret = USER_DB[username]
+
+    def respond_to_challenge(self, nonce):
+  
+        mac = hmac.new(self.secret, (nonce + self.username).encode(), hashlib.sha256).hexdigest()
+        print(f"[Client:{self.username}] Response MAC: {mac}")
+        return mac
+
+server = Server()
+alice = Client("alice")
+
+print("\n--- Step 1: Normal Authentication ---")
+nonce1 = server.issue_challenge("alice")
+mac1 = alice.respond_to_challenge(nonce1)
+server.verify_response("alice", nonce1, mac1)
+
+print("\n--- Step 2: Replay Attack Attempt ---")
+print("[Attacker] Trying to reuse the same response...")
+server.verify_response("alice", nonce1, mac1)
+
+print("\n--- Step 3: Fresh Challenge (Valid) ---")
+nonce2 = server.issue_challenge("alice")
+mac2 = alice.respond_to_challenge(nonce2)
+server.verify_response("alice", nonce2, mac2)
+
+print("\n--- Step 4: Expired Nonce Demo ---")
+nonce3 = server.issue_challenge("alice")
+print("[System] Waiting for nonce to expire...")
+time.sleep(11)  # longer than TTL
+mac3 = alice.respond_to_challenge(nonce3)
+server.verify_response("alice", nonce3, mac3)
