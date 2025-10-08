@@ -1,0 +1,43 @@
+CAESAR CIPHER
+def caesar_encrypt(plaintext, key):
+    ciphertext = ""
+    for char in plaintext:
+        if char.isalpha():
+            shift = key % 26
+            base = ord('A') if char.isupper() else ord('a')
+            ciphertext += chr((ord(char) - base + shift) % 26 + base)
+        else:
+            ciphertext += char
+    return ciphertext
+
+def caesar_decrypt(ciphertext, key):
+    return caesar_encrypt(ciphertext, -key)
+
+VIGENERE CIPHER
+def vigenere_encrypt(plaintext, key):
+    ciphertext = ""
+    key = key.lower()
+    key_length = len(key)
+    key_int = [ord(i) - ord('a') for i in key]
+    for i, char in enumerate(plaintext):
+        if char.isalpha():
+            base = ord('A') if char.isupper() else ord('a')
+            key_char = key_int[i % key_length]
+            ciphertext += chr((ord(char) - base + key_char) % 26 + base)
+        else:
+            ciphertext += char
+    return ciphertext
+
+def vigenere_decrypt(ciphertext, key):
+    plaintext = ""
+    key = key.lower()
+    key_length = len(key)
+    key_int = [ord(i) - ord('a') for i in key]
+    for i, char in enumerate(ciphertext):
+        if char.isalpha():
+            base = ord('A') if char.isupper() else ord('a')
+            key_char = key_int[i % key_length]
+            plaintext += chr((ord(char) - base - key_char) % 26 + base)
+        else:
+            plaintext += char
+    return plaintext
